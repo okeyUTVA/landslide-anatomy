@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anatomy of a Landslide - Interactive Earth Science Activity</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f6f8;
+            color: #2d3748;
+            user-select: none;
+        }
+
+        /* SVG animation transitions */
+        .rotational-block {
+            transform-origin: 350px 380px;
+            transition: transform 0.1s linear;
+        }
+
+        .debris-particle {
+            transition: all 0.1s linear;
+        }
+
+        .water-layer {
+            transition: opacity 0.5s ease;
+        }
+
+        .hotspot-pulse {
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(217, 119, 6, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .tab-btn.active {
+            border-bottom: 3px solid #d97706;
+            color: #92400e;
+            font-weight: 700;
+            background-color: #fffbeb;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6 min-h-screen flex flex-col justify-between max-w-7xl mx-auto">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white rounded-xl shadow-sm border border-amber-900/10 p-4 mb-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">9th Grade Earth Science</span>
+                    <span class="text-xs text-slate-500 font-medium">Interactive Exploration</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800 mt-1 flex items-center gap-2">
+                    <i data-lucide="mountain-snow" class="text-amber-700 w-7 h-7"></i>
+                    Anatomy of a Landslide
+                </h1>
+            </div>
+            
+            <!-- Type Switcher Tabs -->
+            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200 self-start md:self-auto">
+                <button id="tab-rotational" onclick="switchLandslideType('rotational')" class="tab-btn active px-4 py-2 rounded-md text-sm font-semibold transition-all flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    Rotational Slump
+                </button>
+                <button id="tab-rockfall" onclick="switchLandslideType('rockfall')" class="tab-btn px-4 py-2 rounded-md text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center gap-2">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    Rockfall / Debris Flow
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start mb-4">
+        
+        <!-- Left 7 Cols: Diagram Canvas & Simulation Controls -->
+        <div class="lg:col-span-7 bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+            <div class="relative w-full overflow-hidden bg-sky-50 rounded-lg border border-sky-100">
+                
+                <!-- Water level overlay badge -->
+                <div id="saturation-badge" class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm text-xs font-semibold text-slate-700 flex items-center gap-1.5 z-10 transition-all">
+                    <i data-lucide="droplet" class="w-4 h-4 text-sky-500 fill-sky-500"></i>
+                    <span>Soil Water Saturation: <strong id="sat-percent-text" class="text-sky-600">10%</strong></span>
+                </div>
+
+                <!-- Landslide SVG Diagram -->
+                <svg id="landslide-svg" viewBox="0 0 800 500" class="w-full h-auto max-h-[460px] select-none">
+                    <defs>
+                        <!-- Gradients -->
+                        <linearGradient id="sky-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#e0f2fe"/>
+                            <stop offset="100%" stop-color="#f0f9ff"/>
+                        </linearGradient>
+                        <linearGradient id="grass-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#65a30d"/>
+                            <stop offset="100%" stop-color="#4d7c0f"/>
+                        </linearGradient>
+                        <linearGradient id="soil-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#b45309"/>
+                            <stop offset="100%" stop-color="#78350f"/>
+                        </linearGradient>
+                        <linearGradient id="bedrock-grad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#64748b"/>
+                            <stop offset="100%" stop-color="#334155"/>
+                        </linearGradient>
+                        <linearGradient id="slip-grad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#ef4444"/>
+                            <stop offset="100%" stop-color="#b91c1c"/>
+                        </linearGradient>
+                        <pattern id="rock-pattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                            <path d="M 0 10 L 10 0 L 20 10 L 10 20 Z" fill="none" stroke="#475569" stroke-width="0.8" opacity="0.3"/>
+                            <circle cx="5" cy="5" r="1" fill="#475569" opacity="0.3"/>
+                        </pattern>
+                        <pattern id="water-dots" width="16" height="16" patternUnits="userSpaceOnUse">
+                            <circle cx="8" cy="8" r="2" fill="#0284c7" opacity="0.4"/>
+                        </pattern>
+                    </defs>
+
+                    <!-- Background Sky & Trees -->
+                    <rect width="800" height="500" fill="url(#sky-grad)"/>
+                    
+                    <!-- Background Sun -->
+                    <circle cx="730" cy="60" r="35" fill="#fef08a" opacity="0.8"/>
+
+                    <!-- ROTATIONAL SLUMP VIEW GROUP -->
+                    <g id="rotational-group" class="transition-transform duration-500 origin-bottom-left">
+                        <!-- Bedrock Layer (Stable Base) -->
+                        <path id="bedrock-path" d="M 0 500 L 800 500 L 800 380 L 520 380 Q 320 380 180 160 L 0 160 Z" fill="url(#bedrock-grad)"/>
+                        <path d="M 0 500 L 800 500 L 800 380 L 520 380 Q 320 380 180 160 L 0 160 Z" fill="url(#rock-pattern)"/>
+
+                        <!-- Water Table Saturating Surface -->
+                        <path id="rotational-water" class="water-layer" d="M 180 160 Q 320 380 520 380 L 780 380 L 780 430 L 120 430 Z" fill="url(#water-dots)" opacity="0"/>
+
+                        <!-- Rotational Slip Surface Line (Failure Plane) -->
+                        <path id="slip-surface" d="M 180 160 Q 320 380 520 380" fill="none" stroke="#dc2626" stroke-width="4" stroke-dasharray="6 4"/>
+
+                        <!-- Stable Crown Land (Top Left) -->
+                        <path d="M 0 160 L 180 160 L 180 200 L 0 200 Z" fill="url(#soil-grad)"/>
+                        <rect x="0" y="152" width="180" height="12" fill="url(#grass-grad)" rx="2"/>
+
+                        <!-- Slumping Block (Rotates during animation) -->
+                        <g id="slide-block" class="rotational-block">
+                            <!-- Soil Mass -->
+                            <path d="M 180 160 L 450 160 L 520 380 Q 320 380 180 160 Z" fill="url(#soil-grad)" stroke="#581c87" stroke-width="0.5"/>
+                            <!-- Vegetation on Top of Block -->
+                            <path d="M 180 160 L 450 160 L 440 172 L 185 172 Z" fill="url(#grass-grad)"/>
+                            
+                            <!-- Trees on Block (Will tilt) -->
+                            <g id="block-trees">
+                                <path d="M 240 160 L 240 145 M 233 145 L 240 130 L 247 145 Z" stroke="#78350f" stroke-width="3" fill="#15803d"/>
+                                <path d="M 330 160 L 330 142 M 322 142 L 330 125 L 338 142 Z" stroke="#78350f" stroke-width="3" fill="#15803d"/>
+                                <path d="M 400 160 L 400 148 M 394 148 L 400 135 L 406 148 Z" stroke="#78350f" stroke-width="3" fill="#15803d"/>
+                            </g>
+
+                            <!-- Internal Tension Cracks in Block -->
+                            <path d="M 280 160 L 290 190 M 340 160 L 352 195 M 380 160 L 388 185" stroke="#451a03" stroke-width="2.5" opacity="0.7"/>
+                        </g>
+
+                        <!-- Crown Trees (Stable) -->
+                        <path d="M 60 152 L 60 135 M 53 135 L 60 120 L 67 135 Z" stroke="#78350f" stroke-width="3" fill="#15803d"/>
+                        <path d="M 120 152 L 120 132 M 112 132 L 120 115 L 128 132 Z" stroke="#78350f" stroke-width="3" fill="#166534"/>
+
+                        <!-- Toe / Accumulation Zone (Bulges at bottom) -->
+                        <g id="toe-mass" class="transition-all duration-100">
+                            <path d="M 520 380 Q 620 350 780 380 L 780 430 L 520 430 Z" fill="#92400e"/>
+                            <!-- Debris hummocks -->
+                            <path d="M 520 380 Q 580 340 640 375 Q 710 350 780 380" fill="none" stroke="#78350f" stroke-width="4"/>
+                            <ellipse cx="600" cy="370" rx="20" ry="10" fill="#78350f"/>
+                            <ellipse cx="680" cy="372" rx="25" ry="12" fill="#92400e"/>
+                        </g>
+                    </g>
+
+                    <!-- ROCKFALL / DEBRIS FLOW VIEW GROUP (Hidden by default) -->
+                    <g id="rockfall-group" class="hidden">
+                        <!-- Steep Cliff Bedrock -->
+                        <path d="M 0 500 L 800 500 L 800 400 L 700 400 L 250 80 L 0 80 Z" fill="url(#bedrock-grad)"/>
+                        <path d="M 0 500 L 800 500 L 800 400 L 700 400 L 250 80 L 0 80 Z" fill="url(#rock-pattern)"/>
+                        
+                        <!-- Water Flow layer -->
+                        <path id="rockfall-water" class="water-layer" d="M 250 80 L 700 400 L 780 400 L 270 70 Z" fill="url(#water-dots)" opacity="0"/>
+
+                        <!-- Steep Failure Scar -->
+                        <path d="M 250 80 L 700 400" stroke="#b91c1c" stroke-width="4" stroke-dasharray="6 4"/>
+
+                        <!-- Flow/Talus Cone Debris Field -->
+                        <g id="debris-field">
+                            <!-- Animated dynamic boulders will be placed here via JS -->
+                        </g>
+
+                        <!-- Upper Cliff Edge Topsoil -->
+                        <rect x="0" y="70" width="250" height="12" fill="url(#grass-grad)"/>
+                        <!-- Valley Floor Topsoil -->
+                        <rect x="700" y="392" width="100" height="10" fill="url(#grass-grad)"/>
+                    </g>
+
+                    <!-- INTERACTIVE HOTSPOT PINS LAYER -->
+                    <g id="hotspots-layer">
+                        <!-- Pins rendered dynamically via JS based on selected landslide type -->
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Interactive Simulation Controls Panel -->
+            <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <!-- Saturation Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="water-slider" class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1">
+                                <i data-lucide="cloud-rain" class="w-4 h-4 text-sky-600"></i>
+                                Water Saturation
+                            </label>
+                            <span id="slider-val" class="text-xs font-extrabold text-sky-700">10%</span>
+                        </div>
+                        <input id="water-slider" type="range" min="0" max="100" value="10" 
+                            class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600 focus:outline-none"
+                            oninput="updateSaturation(this.value)">
+                    </div>
+
+                    <!-- Slope Angle Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label for="slope-slider" class="text-xs font-bold uppercase text-slate-700 flex items-center gap-1">
+                                <i data-lucide="trending-up" class="w-4 h-4 text-amber-600"></i>
+                                Slope Angle
+                            </label>
+                            <span id="slope-val" class="text-xs font-extrabold text-amber-700">25°</span>
+                        </div>
+                        <input id="slope-slider" type="range" min="15" max="50" value="25" 
+                            class="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600 focus:outline-none"
+                            oninput="updateSlopeAngle(this.value)">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2 justify-end pt-2 border-t border-slate-200">
+                    <button id="trigger-btn" onclick="toggleLandslideTrigger()" class="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-bold px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                        <span id="trigger-btn-text">Trigger Landslide</span>
+                    </button>
+                    <button onclick="resetSimulation()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold p-2.5 rounded-lg transition-all text-sm" title="Reset Diagram">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right 5 Cols: Anatomy Exploration & Info Card -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Anatomy Detail Panel -->
+            <div id="info-panel" class="bg-white p-5 rounded-xl shadow-sm border-2 border-amber-500/30 transition-all min-h-[360px] flex flex-col justify-between">
+                <div>
+                    <!-- Badge Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <span id="info-tag" class="bg-amber-100 text-amber-900 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                            Selected Feature
+                        </span>
+                        <span id="info-type-label" class="text-xs text-slate-400 font-medium">Rotational Slump Anatomy</span>
+                    </div>
+
+                    <!-- Feature Title -->
+                    <h2 id="info-title" class="text-2xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        Click any glowing pin point
+                    </h2>
+
+                    <!-- Main Explanation Text -->
+                    <p id="info-desc" class="text-slate-600 text-sm leading-relaxed mb-4">
+                        Explore the structural parts of a rotational landslide by clicking the numbered interactive pin targets on the cross-section diagram to the left. You can also increase soil saturation and trigger gravity!
+                    </p>
+
+                    <!-- Real World Earth Science Context Box -->
+                    <div id="info-context-box" class="bg-amber-50/80 border-l-4 border-amber-500 p-3.5 rounded-r-lg mb-3">
+                        <h4 class="text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i data-lucide="globe" class="w-3.5 h-3.5"></i> Earth Science Key Concept
+                        </h4>
+                        <p id="info-context" class="text-xs text-amber-900/90 leading-normal">
+                            Gravity is constantly pulling soil down slopes. When water saturates soil, it adds heavy weight and reduces friction, triggering slumps along curved failure surfaces.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Quick Quiz / Reflection Prompt -->
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span class="flex items-center gap-1">
+                        <i data-lucide="info" class="w-4 h-4 text-slate-400"></i>
+                        Tip: Increase rain slider to see failure!
+                    </span>
+                    <span id="pin-count" class="font-semibold text-slate-600">Part 1 of 7</span>
+                </div>
+            </div>
+
+            <!-- Quick Comparison Card -->
+            <div class="bg-slate-800 text-slate-200 p-4 rounded-xl shadow-sm border border-slate-700">
+                <h3 class="text-sm font-bold text-white mb-1.5 flex items-center gap-2">
+                    <i data-lucide="compass" class="w-4 h-4 text-amber-400"></i>
+                    What causes slope failure?
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    <strong>1. Over-steepening:</strong> Erosion or road cutting makes slopes too steep.<br>
+                    <strong>2. Water Saturation:</strong> Rain fills pore spaces, adding weight and lubricating rock boundaries.<br>
+                    <strong>3. Earthquakes:</strong> Seismic shaking triggers sudden loss of cohesion.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas LMS Embed Toggle Accordion Section -->
+    <footer class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <button onclick="toggleEmbedCode()" class="w-full px-5 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs flex items-center justify-between transition-colors">
+            <span class="flex items-center gap-2">
+                <i data-lucide="code" class="w-4 h-4 text-amber-600"></i>
+                Teacher Embed Instructions (Canvas LMS / Web Page)
+            </span>
+            <i id="embed-chevron" data-lucide="chevron-down" class="w-4 h-4 transition-transform"></i>
+        </button>
+        <div id="embed-container" class="hidden p-4 bg-slate-900 text-slate-300 text-xs font-mono border-t border-slate-200">
+            <p class="text-slate-400 mb-2 font-sans font-medium">Copy and paste this HTML snippet into the Canvas LMS Rich Content Editor (HTML View):</p>
+            <div class="relative bg-slate-950 p-3 rounded border border-slate-800 flex justify-between items-center overflow-x-auto">
+                <code id="embed-snippet" class="text-amber-400 whitespace-nowrap">
+                    &lt;iframe src="YOUR_HOSTED_URL_HERE" width="100%" height="680" stroke="0" style="border:none; border-radius:12px; overflow:hidden;" title="Anatomy of a Landslide Interactive"&gt;&lt;/iframe&gt;
+                </code>
+                <button onclick="copyEmbedSnippet()" class="ml-3 bg-amber-600 hover:bg-amber-500 text-white font-sans px-3 py-1.5 rounded font-semibold text-xs flex items-center gap-1 transition-colors shrink-0">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Code
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA DICTIONARIES FOR ANATOMICAL FEATURES ---
+        const rotationalFeatures = [
+            {
+                id: 'crown',
+                name: '1. Crown',
+                x: 100, y: 140,
+                desc: 'The undisturbed, stable land surface located above the main cliff edge (scarp). Vegetation and trees here remain upright initially.',
+                context: 'The crown marks the untouched ground behind the slope collapse. Scientists monitor cracks in the crown to predict future slope movement.'
+            },
+            {
+                id: 'scarp',
+                name: '2. Main Scarp',
+                x: 195, y: 185,
+                desc: 'A steep, nearly vertical cliff edge formed where soil and rock sheared away and moved downward from the stable crown.',
+                context: 'Exposed soil and fresh rock surfaces on a scarp often reveal underground soil layers and bedrock strata that were previously hidden.'
+            },
+            {
+                id: 'slip-plane',
+                name: '3. Rotational Failure Plane',
+                x: 350, y: 350,
+                desc: 'The curved underground surface or "rupture zone" along which the massive block of earth breaks free and slides downhill.',
+                context: 'In rotational slumping, this underground plane is concave (spoon-shaped). Weak clay layers or water saturation usually create this slick boundary.'
+            },
+            {
+                id: 'head-block',
+                name: '4. Slide Block / Head Block',
+                x: 310, y: 220,
+                desc: 'The large unit of soil and rock that tilts backward as it slides along the curved failure plane.',
+                context: 'Because the failure surface is curved, the entire block rotates backward toward the cliff edge as it drops down!'
+            },
+            {
+                id: 'transverse-cracks',
+                name: '5. Transverse Cracks',
+                x: 360, y: 175,
+                desc: 'Deep fractures and tension cracks that open across the surface of the sliding block as it pulls apart during movement.',
+                context: 'Rainwater easily pours into these open cracks, further saturating underground soil and speeding up the slump.'
+            },
+            {
+                id: 'toe',
+                name: '6. Toe of Slope',
+                x: 610, y: 360,
+                desc: 'The accumulated mass of soil and mud that bulges out at the base of the hill onto flat ground.',
+                context: 'The toe is often chaotic, jumbled, and lobed. It can block rivers, roads, or destroy structures built at the bottom of the slope.'
+            },
+            {
+                id: 'bedrock',
+                name: '7. Stable Bedrock / Subsurface',
+                x: 480, y: 440,
+                desc: 'Solid, unweathered rock layer beneath the soil that remains immobile during the landslide event.',
+                context: 'Landslides occur in the weaker upper soil or weathered rock layers sitting on top of dense, stable bedrock.'
+            }
+        ];
+
+        const rockfallFeatures = [
+            {
+                id: 'cliff-top',
+                name: '1. Cliff / Free Face',
+                x: 200, y: 70,
+                desc: 'A near-vertical rock outcrop where gravity exerts maximum downward pull on loose boulders and fractured rock faces.',
+                context: 'Freeze-thaw weathering wedges ice into rock fractures, forcing large boulders to break free from high cliffs.'
+            },
+            {
+                id: 'falling-zone',
+                name: '2. Fall & Flow Path',
+                x: 420, y: 210,
+                desc: 'The high-velocity chute through which tumbling rocks, mud, and debris plunge rapidly down the mountain slope.',
+                context: 'Unlike slow slumps, rockfalls and debris flows travel extremely fast (often over 30–50 mph), giving little warning time!'
+            },
+            {
+                id: 'talus-slope',
+                name: '3. Talus Slope / Accumulation',
+                x: 650, y: 360,
+                desc: 'A fan-shaped pile of coarse, angular rock fragments (scree) deposited at the base of a steep cliff.',
+                context: 'Geologists identify high-risk rockfall areas by mapping these steep triangular talus deposits at mountain bases.'
+            }
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let currentType = 'rotational'; // 'rotational' or 'rockfall'
+        let currentSaturation = 10;
+        let currentSlopeAngle = 25;
+        let isSimulating = false;
+        let animationFrameId = null;
+        let currentRotAngle = 0;
+        let selectedFeatureId = null;
+
+        // --- INIT ---
+        window.onload = function() {
+            lucide.createIcons();
+            renderHotspots();
+            selectFeature(rotationalFeatures[0]);
+        };
+
+        // --- SWITCH LANDSLIDE TYPE ---
+        function switchLandslideType(type) {
+            currentType = type;
+            resetSimulation();
+
+            // Toggle Tabs UI
+            document.getElementById('tab-rotational').classList.toggle('active', type === 'rotational');
+            document.getElementById('tab-rockfall').classList.toggle('active', type === 'rockfall');
+
+            // Toggle SVG Groups
+            document.getElementById('rotational-group').classList.toggle('hidden', type !== 'rotational');
+            document.getElementById('rockfall-group').classList.toggle('hidden', type !== 'rockfall');
+
+            // Toggle Info Header Label
+            document.getElementById('info-type-label').innerText = type === 'rotational' 
+                ? 'Rotational Slump Anatomy' 
+                : 'Rockfall & Debris Flow Anatomy';
+
+            renderHotspots();
+
+            // Auto select first feature
+            if (type === 'rotational') {
+                selectFeature(rotationalFeatures[0]);
+            } else {
+                selectFeature(rockfallFeatures[0]);
+            }
+        }
+
+        // --- RENDER DYNAMIC HOTSPOT PINS ---
+        function renderHotspots() {
+            const container = document.getElementById('hotspots-layer');
+            container.innerHTML = '';
+
+            const list = currentType === 'rotational' ? rotationalFeatures : rockfallFeatures;
+
+            list.forEach((feat, index) => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'cursor-pointer group');
+                g.setAttribute('onclick', `clickHotspot('${feat.id}')`);
+
+                // Pulsing outer ring
+                const pulse = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                pulse.setAttribute('cx', feat.x);
+                pulse.setAttribute('cy', feat.y);
+                pulse.setAttribute('r', '14');
+                pulse.setAttribute('fill', '#d97706');
+                pulse.setAttribute('opacity', '0.4');
+                pulse.setAttribute('class', 'hotspot-pulse');
+
+                // Core Pin Circle
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('id', `pin-circle-${feat.id}`);
+                circle.setAttribute('cx', feat.x);
+                circle.setAttribute('cy', feat.y);
+                circle.setAttribute('r', '10');
+                circle.setAttribute('fill', selectedFeatureId === feat.id ? '#b45309' : '#d97706');
+                circle.setAttribute('stroke', '#ffffff');
+                circle.setAttribute('stroke-width', '2');
+                circle.setAttribute('class', 'transition-transform group-hover:scale-125 duration-150');
+
+                // Number Text inside Pin
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', feat.x);
+                text.setAttribute('y', feat.y + 4);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', '#ffffff');
+                text.setAttribute('font-size', '10');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('pointer-events', 'none');
+                text.textContent = index + 1;
+
+                g.appendChild(pulse);
+                g.appendChild(circle);
+                g.appendChild(text);
+                container.appendChild(g);
+            });
+        }
+
+        // --- HOTSPOT CLICK HANDLER ---
+        function clickHotspot(id) {
+            const list = currentType === 'rotational' ? rotationalFeatures : rockfallFeatures;
+            const feat = list.find(f => f.id === id);
+            if (feat) {
+                selectFeature(feat);
+            }
+        }
+
+        function selectFeature(feat) {
+            selectedFeatureId = feat.id;
+
+            // Highlight feature card content
+            document.getElementById('info-title').innerText = feat.name;
+            document.getElementById('info-desc').innerText = feat.desc;
+            document.getElementById('info-context').innerText = feat.context;
+
+            const list = currentType === 'rotational' ? rotationalFeatures : rockfallFeatures;
+            const idx = list.findIndex(f => f.id === feat.id) + 1;
+            document.getElementById('pin-count').innerText = `Feature ${idx} of ${list.length}`;
+
+            // Update pin fill colors
+            list.forEach(f => {
+                const el = document.getElementById(`pin-circle-${f.id}`);
+                if (el) {
+                    if (f.id === feat.id) {
+                        el.setAttribute('fill', '#92400e');
+                        el.setAttribute('r', '12');
+                    } else {
+                        el.setAttribute('fill', '#d97706');
+                        el.setAttribute('r', '10');
+                    }
+                }
+            });
+        }
+
+        // --- WATER SATURATION CONTROL ---
+        function updateSaturation(val) {
+            currentSaturation = parseInt(val);
+            document.getElementById('sat-percent-text').innerText = `${currentSaturation}%`;
+            document.getElementById('slider-val').innerText = `${currentSaturation}%`;
+
+            // Adjust water layer opacity in SVG
+            const waterRot = document.getElementById('rotational-water');
+            const waterRock = document.getElementById('rockfall-water');
+
+            const opacityVal = (currentSaturation / 100) * 0.8;
+            if (waterRot) waterRot.setAttribute('opacity', opacityVal);
+            if (waterRock) waterRock.setAttribute('opacity', opacityVal);
+
+            checkAutoTrigger();
+        }
+
+        // --- SLOPE ANGLE CONTROL ---
+        function updateSlopeAngle(val) {
+            currentSlopeAngle = parseInt(val);
+            document.getElementById('slope-val').innerText = `${currentSlopeAngle}°`;
+
+            const rotGroup = document.getElementById('rotational-group');
+            const rockGroup = document.getElementById('rockfall-group');
+
+            // Visually tilt the slope diagram based on angle difference from default (25 deg)
+            const angleOffset = (currentSlopeAngle - 25) * 0.4;
+            if (rotGroup) rotGroup.style.transform = `rotate(-${angleOffset}deg)`;
+            if (rockGroup) rockGroup.style.transform = `rotate(-${angleOffset}deg)`;
+
+            checkAutoTrigger();
+        }
+
+        function checkAutoTrigger() {
+            // High water saturation + steep slope automatically causes failure
+            if ((currentSaturation > 70 && currentSlopeAngle > 35) && !isSimulating && currentRotAngle === 0) {
+                toggleLandslideTrigger();
+            }
+        }
+
+        // --- ANIMATION / SIMULATION LOGIC ---
+        function toggleLandslideTrigger() {
+            if (isSimulating) {
+                pauseSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        function startSimulation() {
+            isSimulating = true;
+            document.getElementById('trigger-btn-text').innerText = 'Pause Motion';
+            document.getElementById('trigger-btn').classList.replace('bg-amber-600', 'bg-rose-600');
+            document.getElementById('trigger-btn').classList.replace('hover:bg-amber-700', 'hover:bg-rose-700');
+
+            // If water slider was low, auto push it up to show cause and effect
+            if (currentSaturation < 40) {
+                updateSaturation(65);
+                document.getElementById('water-slider').value = 65;
+            }
+
+            animateStep();
+        }
+
+        function pauseSimulation() {
+            isSimulating = false;
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            document.getElementById('trigger-btn-text').innerText = 'Resume Motion';
+            document.getElementById('trigger-btn').classList.replace('bg-rose-600', 'bg-amber-600');
+            document.getElementById('trigger-btn').classList.replace('hover:bg-rose-700', 'hover:bg-amber-700');
+        }
+
+        function animateStep() {
+            if (!isSimulating) return;
+
+            if (currentType === 'rotational') {
+                // Rotational slump block backward rotation
+                if (currentRotAngle < 18) {
+                    currentRotAngle += 0.2;
+                    const block = document.getElementById('slide-block');
+                    const toe = document.getElementById('toe-mass');
+
+                    // Apply rotational transformation around lower curved surface axis
+                    block.style.transform = `rotate(${currentRotAngle}deg) translate(${currentRotAngle * 1.5}px, ${currentRotAngle * 2.2}px)`;
+                    
+                    // Toe bulges out as head block slides down
+                    toe.style.transform = `scaleX(${1 + currentRotAngle * 0.015}) scaleY(${1 + currentRotAngle * 0.01})`;
+                    
+                    animationFrameId = requestAnimationFrame(animateStep);
+                } else {
+                    pauseSimulation();
+                    document.getElementById('trigger-btn-text').innerText = 'Completed';
+                }
+            } else {
+                // Rockfall / Debris flow dynamic particle animation
+                animateRockfallDebris();
+            }
+        }
+
+        let debrisParticles = [];
+        function animateRockfallDebris() {
+            const debrisContainer = document.getElementById('debris-field');
+            
+            // Spawn debris rock particles
+            if (debrisParticles.length < 25 && Math.random() > 0.3) {
+                const rock = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const startX = 250 + Math.random() * 30;
+                const startY = 80 + Math.random() * 20;
+                
+                rock.setAttribute('points', '-6,-4 4,-7 7,3 -2,6');
+                rock.setAttribute('fill', Math.random() > 0.5 ? '#78350f' : '#475569');
+                rock.setAttribute('transform', `translate(${startX}, ${startY})`);
+
+                debrisContainer.appendChild(rock);
+                debrisParticles.push({
+                    el: rock,
+                    x: startX,
+                    y: startY,
+                    vx: 3 + Math.random() * 5,
+                    vy: 2 + Math.random() * 6
+                });
+            }
+
+            // Move debris particles downhill
+            debrisParticles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.3; // Gravity acceleration
+
+                // Stop at valley floor
+                if (p.y > 390) {
+                    p.y = 390 + Math.random() * 10;
+                    p.vx = 0;
+                    p.vy = 0;
+                }
+                p.el.setAttribute('transform', `translate(${p.x}, ${p.y})`);
+            });
+
+            if (isSimulating) {
+                animationFrameId = requestAnimationFrame(animateStep);
+            }
+        }
+
+        // --- RESET SIMULATION ---
+        function resetSimulation() {
+            pauseSimulation();
+            currentRotAngle = 0;
+
+            // Reset Rotational SVG
+            const block = document.getElementById('slide-block');
+            const toe = document.getElementById('toe-mass');
+            const rotGroup = document.getElementById('rotational-group');
+            const rockGroup = document.getElementById('rockfall-group');
+
+            if (block) block.style.transform = 'none';
+            if (toe) toe.style.transform = 'none';
+            if (rotGroup) rotGroup.style.transform = 'none';
+            if (rockGroup) rockGroup.style.transform = 'none';
+
+            // Reset Rockfall SVG
+            const debrisContainer = document.getElementById('debris-field');
+            if (debrisContainer) debrisContainer.innerHTML = '';
+            debrisParticles = [];
+
+            // Reset Sliders
+            currentSaturation = 10;
+            currentSlopeAngle = 25;
+            document.getElementById('water-slider').value = 10;
+            document.getElementById('slope-slider').value = 25;
+            document.getElementById('sat-percent-text').innerText = '10%';
+            document.getElementById('slider-val').innerText = '10%';
+            document.getElementById('slope-val').innerText = '25°';
+
+            updateSaturation(10);
+
+            document.getElementById('trigger-btn-text').innerText = 'Trigger Landslide';
+        }
+
+        // --- EMBED CODE ACCORDION TOGGLE ---
+        function toggleEmbedCode() {
+            const container = document.getElementById('embed-container');
+            const chevron = document.getElementById('embed-chevron');
+            container.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        }
+
+        function copyEmbedSnippet() {
+            const codeText = document.getElementById('embed-snippet').innerText;
+            
+            // Clipboard copy fallbacks
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(codeText);
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = codeText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+            
+            alert('Canvas embed iframe snippet copied to clipboard!');
+        }
+    </script>
+</body>
+</html>
