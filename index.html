@@ -741,31 +741,6 @@
             document.getElementById('trigger-btn-text').innerText = 'Trigger Landslide';
         }
 
-        // --- EMBED CODE ACCORDION TOGGLE ---
-        function toggleEmbedCode() {
-            const container = document.getElementById('embed-container');
-            const chevron = document.getElementById('embed-chevron');
-            container.classList.toggle('hidden');
-            chevron.classList.toggle('rotate-180');
-        }
-
-        function copyEmbedSnippet() {
-            const codeText = document.getElementById('embed-snippet').innerText;
-            
-            // Clipboard copy fallbacks
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(codeText);
-            } else {
-                const textArea = document.createElement('textarea');
-                textArea.value = codeText;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
-            
-            alert('Canvas embed iframe snippet copied to clipboard!');
-        }
-    </script>
+        </script>
 </body>
 </html>
